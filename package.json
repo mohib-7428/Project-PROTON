@@ -1,15 +1,12 @@
 {
-  "name": "proton-wss-client",
+  "name": "proton-vercel",
   "version": "1.0.0",
-  "description": "High-speed WSS coordinate tracker",
-  "main": "proton.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node proton.js"
+    "start": "node index.js",
+    "dev": "node index.js"
   },
   "dependencies": {
     "ws": "^8.16.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
   }
 }
