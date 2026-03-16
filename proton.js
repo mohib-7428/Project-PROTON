@@ -1,46 +1,41 @@
-const WebSocket = require('ws'); // You may need to run 'npm install ws'
+const WebSocket = require('ws');
+const http = require('http');
 
-// Use the actual game server URL you found in your logs
-const SERVER_URL = 'wss://p1.mcraft.fun/socket'; 
-
-const proton = new WebSocket(SERVER_URL, {
-    origin: 'https://mcraft.fun', // Servers check this to make sure you're 'playing' on their site
-    headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) PROTON-CLIENT/1.0'
-    }
-});
-
-proton.on('open', () => {
-    console.log('--- PROTON CONNECTED ---');
-    
-    // Most games need a 'join' or 'login' packet first
-    const loginPacket = JSON.stringify({
-        type: "login",
-        name: "ProtonUser",
-        skin: 0
+// --- THE WSS TRACKER LOGIC ---
+function startTracker() {
+    const SERVER_URL = 'wss://p1.mcraft.fun/socket'; // Double check this URL in F12
+    const proton = new WebSocket(SERVER_URL, {
+        origin: 'https://mcraft.fun'
     });
-    
-    proton.send(loginPacket);
+
+    proton.on('open', () => {
+        console.log('✅ PROTON CONNECTED');
+        // Send join packet
+        proton.send(JSON.stringify({ type: "login", name: "Proton_Vercel" }));
+    });
+
+    proton.on('message', (data) => {
+        try {
+            const msg = JSON.parse(data.toString());
+            if (msg.x !== undefined) {
+                console.log(`📍 [LIVE] X: ${msg.x.toFixed(2)} Y: ${msg.y.toFixed(2)}`);
+            }
+        } catch (e) {}
+    });
+
+    proton.on('close', () => {
+        console.log('🔄 Connection lost. Retrying in 5s...');
+        setTimeout(startTracker, 5000);
+    });
+}
+
+// --- THE VERCEL KEEP-ALIVE ---
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Proton Node.js Client is active.');
 });
 
-proton.on('message', (data) => {
-    try {
-        const msg = JSON.parse(data.toString());
-        
-        // This is the "Coord Checker" logic
-        if (msg.x !== undefined && msg.y !== undefined) {
-            console.log(`[COORD] X: ${msg.x.toFixed(2)} | Y: ${msg.y.toFixed(2)}`);
-        }
-        
-    } catch (e) {
-        // Handle non-JSON or binary data here
-    }
-});
+startTracker();
 
-proton.on('close', () => {
-    console.log('--- PROTON DISCONNECTED ---');
-});
-
-proton.on('error', (err) => {
-    console.error('--- PROTON ERROR ---', err.message);
-});
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Listening on port ${PORT}`));
